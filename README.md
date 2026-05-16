@@ -1,17 +1,22 @@
 # Archer Midnight: MATLAB FEA of Frame and Landing Gear
 
-### [Read the project website](https://angeloudavidj-png.github.io/archer-midnight-fea/) | [Technical report](docs/index.md) | [Source code](src/) | [Figures](docs/figures/)
+> **Featured project, recruiter view:** the most digestible entry point is the [portable portfolio page](website/midnight-fea/index.html) (also available as plain [Markdown](website/midnight-fea/index.md) for drop-in to any static site). It leads with the three headline numbers and the five most informative figures and is intended for a 90-second skim before diving into the code.
+
+### [Project website](https://angeloudavidj-png.github.io/archer-midnight-fea/) | [Technical report](docs/index.md) | [Portfolio page](website/midnight-fea/index.html) | [Source code](src/) | [Figures](docs/figures/)
 
 A from-scratch 3D Euler-Bernoulli beam finite element analysis of the Archer Aviation Midnight eVTOL airframe and tricycle landing gear, written in base MATLAB with no toolbox dependencies. The project sizes structural members against four flight load cases and a FAR 23.473 hard landing case, and reports stress, displacement, and reserve factors.
 
 ### Headline results
 
-| Component | Governing case | Peak σ_VM (MPa) | Reserve factor | Allowable (MPa) |
-|---|---|---|---|---|
-| Frame (CFRP) | LC2 2g symmetric maneuver | 175.4 | 2.00 | 350 |
-| Landing gear (7075-T6) | LCG 3g landing + 0.5g drag | 1881.3 | 0.27 | 503 |
+| Metric | Value | Detail |
+|---|---|---|
+| Frame governing RF | **2.00** | LC2 2g maneuver, peak VM 175.4 MPa, CFRP 350 MPa allowable |
+| Landing gear RF | **1.18** | LCG 3g + 0.5g drag, peak VM 427.9 MPa, 7075-T6 503 MPa yield (post-resize, marginal) |
+| Drop-test dynamic factor | **1.87** | Newmark 2.6 m/s sink rate, peak contact 175 kN vs static 93 kN |
+| Critical ply mode | **Matrix tension, 90°** | Boom layup [0/45/-45/90]_s, Tsai-Wu 0.40, strength ratio 2.14 |
+| Parametric optimum | **312 kg @ RF 1.60** | 1400-point sweep, 137 kg lighter than current at higher RF |
 
-The frame carries positive margin in every flight case studied. The landing gear, with the as-specified 60 mm OD 5 mm wall strut, falls well short under the modeled 3g landing and is flagged for redesign (larger section or trailing-arm topology with energy absorption).
+The frame carries positive margin in every flight case studied. The landing gear was resized after the first analysis flagged the original 60 mm × 5 mm strut as inadequate (RF 0.27). The full design-iteration narrative plus the modal, drop-test, ply-failure, parametric, and cross-verification sections live in the [technical report](docs/index.md).
 
 ![Frame LC2 von Mises stress contour](docs/figures/frame_LC2_2g_maneuver_stress.png)
 

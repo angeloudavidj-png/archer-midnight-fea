@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Archer Midnight Structural FEA, David Angelou</title>
+<style>
+  :root {
+    --fg: #1a1a1a;
+    --muted: #555;
+    --accent: #1c4e80;
+    --line: #d8d8d8;
+    --bg: #ffffff;
+    --card-bg: #f6f7f9;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.65;
+    font-size: 17px;
+  }
+  main {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 32px 24px 64px;
+  }
+  header {
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 20px;
+    margin-bottom: 28px;
+  }
+  h1 {
+    font-size: 1.9rem;
+    line-height: 1.25;
+    margin: 0 0 6px 0;
+    letter-spacing: -0.01em;
+  }
+  header p.tagline {
+    margin: 0;
+    color: var(--muted);
+    font-size: 1.05rem;
+  }
+  h2 {
+    font-size: 1.35rem;
+    margin: 40px 0 12px 0;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 4px;
+    letter-spacing: -0.005em;
+  }
+  h3 {
+    font-size: 1.05rem;
+    margin: 20px 0 6px 0;
+    color: var(--accent);
+  }
+  p { margin: 0 0 14px 0; }
+  ul, ol { padding-left: 22px; }
+  li { margin-bottom: 4px; }
+  a {
+    color: var(--accent);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(28, 78, 128, 0.3);
+  }
+  a:hover { border-bottom-color: var(--accent); }
+  figure {
+    margin: 18px 0;
+    padding: 0;
+  }
+  figure img {
+    width: 100%;
+    height: auto;
+    display: block;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+  }
+  figcaption {
+    font-size: 0.92rem;
+    color: var(--muted);
+    margin-top: 6px;
+    line-height: 1.45;
+  }
+  .hero figure { margin-top: 0; }
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 24px 0 32px;
+  }
+  .stat {
+    background: var(--card-bg);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 16px 14px;
+    text-align: left;
+  }
+  .stat .label {
+    font-size: 0.80rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 6px;
+  }
+  .stat .value {
+    font-size: 1.55rem;
+    font-weight: 600;
+    color: var(--accent);
+    line-height: 1.1;
+    margin-bottom: 4px;
+  }
+  .stat .sub {
+    font-size: 0.85rem;
+    color: var(--muted);
+    line-height: 1.35;
+  }
+  @media (max-width: 560px) {
+    .stats { grid-template-columns: 1fr; }
+  }
+  footer {
+    margin-top: 56px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 0.93rem;
+  }
+  footer a { color: var(--muted); border-bottom-color: rgba(85,85,85,0.3); }
+  code {
+    background: #f1f2f4;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 0.92em;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+  .kbd-list { font-size: 0.95rem; }
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <h1>Archer Midnight Structural FEA</h1>
+  <p class="tagline">3D Euler-Bernoulli beam finite element analysis of an eVTOL airframe and tricycle landing gear, written from scratch in base MATLAB.</p>
+</header>
+
+<section class="hero">
+  <figure>
+    <img src="assets/frame_LC2_2g_maneuver_deformed.png" alt="Frame deformed shape under the governing 2g symmetric maneuver, displacement scaled 100x">
+    <figcaption>Deformed shape under the governing load case (LC2, 2g symmetric pull-up). Displacement scaled 100x. Peak boom stress is at the inboard segments adjacent to the wing attachment.</figcaption>
+  </figure>
+</section>
+
+<section class="stats" aria-label="Headline results">
+  <div class="stat">
+    <div class="label">Frame governing RF</div>
+    <div class="value">2.00</div>
+    <div class="sub">LC2 2g maneuver, peak VM 175.4 MPa against CFRP 350 MPa allowable.</div>
+  </div>
+  <div class="stat">
+    <div class="label">Landing dynamic factor</div>
+    <div class="value">1.87</div>
+    <div class="sub">Newmark drop test at 2.6 m/s sink. Peak landing force is 87% above the static 3g envelope.</div>
+  </div>
+  <div class="stat">
+    <div class="label">Critical ply mode</div>
+    <div class="value">Matrix tension</div>
+    <div class="sub">90° plies in the boom layup, Tsai-Wu 0.40 of failure, strength ratio 2.14.</div>
+  </div>
+</section>
+
+<section>
+  <h2>Approach</h2>
+  <p>The toolkit assembles a sparse global stiffness matrix from 3D Euler-Bernoulli beam elements, applies four flight load cases (1g hover, 2g maneuver, cruise, motor-out) on the composite airframe and a FAR 23.473 hard-landing on the tricycle gear, and reports stress, displacement, and reserve factors against published material allowables. The implementation is base MATLAB with no toolbox dependencies.</p>
+  <p>Five layered analyses sit on top of the static solver. A consistent-mass modal analysis identifies the airframe natural frequencies and flags resonance against the rotor 1P, 2P, and blade-pass harmonics in the hover and cruise RPM bands. A Newmark beta time integration with a penalty-spring tire contact reveals the real peak landing force and the cabin-level acceleration. A classical lamination theory pipeline distributes the LC2 boom stress through a [0/45/-45/90]_s quasi-isotropic layup and computes Tsai-Wu and Hashin failure indices per ply. A 1400-point parametric sweep maps the mass-versus-RF Pareto frontier across boom and strut section sizes. Finally, the model is exported as Nastran .bdf and Ansys .mac for cross-verification, and two shell submodels are staged in Ansys APDL for the wing-fuselage joint and the strut top.</p>
+</section>
+
+<section>
+  <h2>Results highlights</h2>
+
+  <figure>
+    <img src="assets/frame_LC2_2g_maneuver_stress.png" alt="Frame von Mises stress contour under LC2 2g maneuver">
+    <figcaption>Frame von Mises stress contour, LC2. The inboard boom segments at the wing attachment carry the highest stress, 175.4 MPa. Outboard motor stations and the spine remain below 100 MPa.</figcaption>
+  </figure>
+
+  <figure>
+    <img src="assets/campbell_diagram.png" alt="Campbell diagram, first 10 airframe modes versus rotor RPM harmonics">
+    <figcaption>Campbell diagram. Solid lines are blade-pass harmonics (1P through 6P) for 5-blade rotors; dashed lines are the first 10 airframe elastic modes. Three intersections fall within ±15% of the operating RPM bands: mode 9 at 19.3 Hz crosses 1P at 1156 RPM (cruise tilt), mode 10 at 36.3 Hz crosses 1P at 2175 RPM (hover edge) and 2P at 1088 RPM (cruise tilt).</figcaption>
+  </figure>
+
+  <figure>
+    <img src="assets/drop_test_strut_force.png" alt="Main strut axial force history during a 2.6 m/s landing drop test">
+    <figcaption>Main strut axial force history during the FAR 23.473 sink-rate drop test. Newmark β=0.25 γ=0.5 integration, 15,000 steps at dt = 10 μs, tire compliance modeled as a 5 MN/m one-sided penalty spring. Dynamic factor on the total contact force is 1.87 against the static 3g reference.</figcaption>
+  </figure>
+
+  <figure>
+    <img src="assets/boom_layup_failure.png" alt="Per-ply Tsai-Wu and Hashin failure indices for the boom quasi-isotropic layup under LC2">
+    <figcaption>Per-ply failure indices for the boom [0/45/-45/90]_s layup under LC2. The 0° plies see 458 MPa fiber-direction stress, only 16% of their 2850 MPa allowable; the 90° plies govern via matrix tension at index 0.40. Strength ratio against first-ply failure is 2.14.</figcaption>
+  </figure>
+
+  <figure>
+    <img src="assets/pareto_mass_vs_rf.png" alt="Pareto frontier of total structural mass versus minimum reserve factor across 1400 design points">
+    <figcaption>Parametric sweep over boom and strut cross sections, 1400 combinations evaluated in 0.69 s. The current post-Phase-0 design (yellow star) is dominated by lighter feasible designs. The minimum-mass feasible point at RF ≥ 1.5 is 312 kg, 137 kg lighter than the current 449 kg baseline.</figcaption>
+  </figure>
+</section>
+
+<section>
+  <h2>What I would do next</h2>
+  <ol>
+    <li><strong>Run the staged Ansys cross-verification.</strong> The toolkit emits Nastran .bdf and Ansys .mac files of the LC2 frame plus shell submodels of the wing-fuselage joint and the strut top. The expectation is peak von Mises agreement within 10 percent and peak displacement within 5 percent.</li>
+    <li><strong>Add a nonlinear oleo strut model to the drop test.</strong> The current 1.87 dynamic factor uses a rigid strut with tire compliance only. A real Midnight has an oleo that absorbs landing energy over 100 to 200 mm of stroke, which would substantially lower the peak strut load and let the static design point shrink back toward 3g.</li>
+    <li><strong>Bridge the composite ply analysis through to a shell layup.</strong> The current cross-verification model uses isotropic-equivalent CFRP. A composite shell (Ansys ACP or Nastran PCOMP) with the actual [0/45/-45/90]_s stack would reveal interlaminar shear hotspots the beam plus isotropic shell cannot see.</li>
+    <li><strong>Loop the Phase 4 Pareto optimum back into the static and dynamic analyses.</strong> The 312 kg / RF 1.60 design uses very thin walls that the beam-element model treats as fine. A buckling check at this t/D ratio is the next gate before adopting the optimum, and that requires a shell or stiffened-panel model.</li>
+    <li><strong>Add an aerodynamic coupling.</strong> Spanwise lift is currently applied as resultant forces at the motor nodes. A vortex-lattice or low-order panel solution would distribute the lift more realistically and may shift the LC3 cruise governing locations.</li>
+  </ol>
+</section>
+
+<footer>
+  <p><strong>Author:</strong> David Angelou, B.S.E. Mechanical Engineering, University of Michigan (Class of 2027).</p>
+  <p>
+    <a href="https://github.com/angeloudavidj-png/archer-midnight-fea">GitHub repository</a> &middot;
+    <a href="https://angeloudavidj-png.github.io/archer-midnight-fea/">Full technical report (12 sections, 8800 words)</a> &middot;
+    <a href="https://www.linkedin.com/in/david-angelou/">LinkedIn</a>
+  </p>
+  <p style="font-size: 0.85rem; margin-top: 14px;">All Midnight parameters are public-domain estimates based on Archer Aviation press materials and FAA filings. No proprietary data is used. Code released under MIT.</p>
+</footer>
+
+</main>
+</body>
+</html>
