@@ -1,0 +1,15 @@
+quantity,value,unit
+sink_rate,2.60,m/s
+penalty_stiffness,5.00e+06,N/m
+damping_ratio,0.030,-
+damping_alpha,7.4697e-01,1/s
+damping_beta,1.1829e-03,s
+peak_contact_force,174913,N
+static_3g_reference,93440,N
+dynamic_factor,1.872,-
+peak_strut_vm,190.21,MPa
+peak_strut_rf,2.64,-
+peak_axial_force,64620,N
+peak_bending_moment,624.8,N.m
+peak_accel_wheel,128.95,g
+peak_accel_attach,4.63,g
