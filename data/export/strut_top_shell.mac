@@ -1,0 +1,91 @@
+! =====================================================================
+! Ansys APDL shell submodel: landing gear main strut top
+! Center: main_L attachment at (3.2, -0.6, 0.85) m
+! Two tube stubs of OD 100 mm, wall 8 mm, length 200 mm.
+!   1) Main strut (direction toward wheel contact at (3.2, -1.2, 0))
+!   2) Cross brace (direction toward main_R attachment at (3.2, +0.6, 0.85))
+! LCG (3g landing) boundary loads from MATLAB beam FEA.
+! Material: 7075-T6 aluminum
+! Run:  ansysXXX -b -i strut_top_shell.mac -o strut_top_shell.out
+! =====================================================================
+/CLEAR
+/PREP7
+/TITLE,LG main strut top shell submodel, LCG loads
+
+ET,1,SHELL281
+SECTYPE,1,SHELL
+SECDATA,0.0080,1
+
+! Material (7075-T6 aluminum)
+MP,EX,1,7.170000E+10
+MP,PRXY,1,0.3300
+MP,DENS,1,2810.00
+
+*SET,XC,3.2
+*SET,YC,-0.6
+*SET,ZC,0.85
+*SET,RO,0.0500   ! outer radius (m)
+*SET,LS,0.200
+
+! Strut: direction toward (3.2, -1.2, 0), unit vector [0, -0.577, -0.817]
+! Local CS 21 with axis along strut
+LOCAL,21,1,XC,YC,ZC,-90,-35.5377,90  ! cylindrical, axis along strut
+CSYS,21
+CYL4,0,0,RO,0,RO,360,LS
+CSYS,0
+
+! Cross brace: direction +y
+LOCAL,22,1,XC,YC,ZC,90,0,90
+CSYS,22
+CYL4,0,0,RO,0,RO,360,LS
+CSYS,0
+
+AGLUE,ALL
+AESIZE,ALL,0.005
+TYPE,1
+SECNUM,1
+MAT,1
+AMESH,ALL
+
+
+! --- Load block: strut, master node 9101 ---
+N,9101,XC+0,YC-LS*0.577,ZC-LS*0.817
+NSEL,S,LOC,X,XC+0-0.005,XC+0+0.005
+NSEL,R,LOC,Y,YC-LS*0.577-0.005,YC-LS*0.577+0.005
+! ... refine selection to the circular cut edge in practice
+CERIG,9101,ALL,UXYZ,0
+ALLSEL
+F,9101,FX,-5.1242E+04
+F,9101,FY,2.1024E+04
+F,9101,FZ,3.2030E+02
+F,9101,MX,-2.8647E+03
+F,9101,MY,2.2757E+02
+F,9101,MZ,-1.9852E+04
+
+! --- Load block: brace, master node 9102 ---
+N,9102,XC,YC+LS,ZC
+NSEL,S,LOC,X,XC-0.005,XC+0.005
+NSEL,R,LOC,Y,YC+LS-0.005,YC+LS+0.005
+! ... refine selection to the circular cut edge in practice
+CERIG,9102,ALL,UXYZ,0
+ALLSEL
+F,9102,FX,-2.9289E+04
+F,9102,FY,-7.2760E-12
+F,9102,FZ,2.2737E-13
+F,9102,MX,-9.0949E-13
+F,9102,MY,-1.0568E+02
+F,9102,MZ,-3.5064E+03
+
+FINISH
+/SOLU
+ANTYPE,STATIC
+SOLVE
+FINISH
+/POST1
+SET,LAST
+PLNSOL,S,EQV
+/IMAGE,SAVE,strut_top_shell_screenshot,png
+NSORT,S,EQV,0,1
+*GET,VM_MAX,SORT,,MAX
+/COM,Strut top shell submodel peak VM = %VM_MAX:F12.2% Pa
+FINISH

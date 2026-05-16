@@ -1,0 +1,156 @@
+! =====================================================================
+! Ansys APDL shell submodel: wing-to-fuselage joint
+! Center: spine node 3 at (6.0, 0.0, 1.2) m
+! Four tube stubs of OD 300 mm, wall 10 mm, length 200 mm each
+! LC2 (2g symmetric maneuver) boundary loads from MATLAB beam FEA.
+! Material: CFRP isotropic-equivalent (E = 70 GPa, nu = 0.30)
+! Run:  ansysXXX -b -i joint_shell.mac -o joint_shell.out
+! =====================================================================
+/CLEAR
+/PREP7
+/TITLE,Wing-fuselage joint shell submodel, LC2 loads
+
+! Element and section
+ET,1,SHELL281
+SECTYPE,1,SHELL
+SECDATA,0.0100,1
+
+! Material (CFRP isotropic equivalent)
+MP,EX,1,7.000000E+10
+MP,PRXY,1,0.3000
+MP,DENS,1,1600.00
+
+! Joint center and tube geometry
+*SET,XC,6.0
+*SET,YC,0.0
+*SET,ZC,1.2
+*SET,RO,0.1500   ! outer radius (m)
+*SET,LS,0.200  ! stub length (m)
+
+! ---------------------------------------------------------------
+! Geometry: 4 cylindrical tube stubs meeting at the joint center.
+! Each stub is created as a CYLIND with axis along one direction.
+! ---------------------------------------------------------------
+
+! Spine, -x stub (from (XC-LS, YC, ZC) to (XC, YC, ZC))
+CYLIND,RO,RO,-LS,0,0,360
+! NOTE: CYLIND defaults to the global Z axis; we need to reorient.
+! For simplicity here, we create the geometry via KEYPOINTS and lines.
+
+! Cleaner approach: build by curves and revolve.
+! Step 1: define 4 circular cross-section curves at the joint end
+! Step 2: extrude each in its axis direction to form the tube shell
+! Step 3: AGLUE the 4 stubs at the joint
+
+! Reset and use cleaner construction:
+VCLEAR,ALL
+VDELE,ALL,,,1
+
+! Local cylindrical coordinate systems, one per stub.
+LOCAL,11,1,XC,YC,ZC,0,0,90    ! axis along +x  (theta about z=-90)
+LOCAL,12,1,XC,YC,ZC,180,0,90  ! axis along -x
+LOCAL,13,1,XC,YC,ZC,90,0,90   ! axis along +y
+LOCAL,14,1,XC,YC,ZC,-90,0,90  ! axis along -y
+CSYS,0
+
+! Construct each stub as a cylindrical shell surface (CYL4 / AREA approach)
+! Spine +x stub (from XC to XC+LS along x)
+CSYS,11
+CYL4,0,0,RO,0,RO,360,LS
+CSYS,12
+CYL4,0,0,RO,0,RO,360,LS
+CSYS,13
+CYL4,0,0,RO,0,RO,360,LS
+CSYS,14
+CYL4,0,0,RO,0,RO,360,LS
+CSYS,0
+
+! AGLUE merges coincident areas at the joint center.
+AGLUE,ALL
+
+! Mesh with SHELL281, target element size ~10 mm.
+AESIZE,ALL,0.010
+TYPE,1
+SECNUM,1
+MAT,1
+AMESH,ALL
+
+! ---------------------------------------------------------------
+! Apply boundary loads via remote master nodes coupled to the cut
+! face nodes with CERIG (rigid coupling).
+! ---------------------------------------------------------------
+
+
+! --- Load block: spine_neg_x, master node 9001 ---
+N,9001,XC-LS,YC,ZC
+NSEL,S,LOC,X,XC-LS-0.005,XC-LS+0.005
+NSEL,R,LOC,Y,YC-0.005,YC+0.005
+! ... refine selection to the circular cut edge in practice
+CERIG,9001,ALL,UXYZ,0
+ALLSEL
+F,9001,FX,0.0000E+00
+F,9001,FY,0.0000E+00
+F,9001,FZ,2.4917E+04
+F,9001,MX,0.0000E+00
+F,9001,MY,1.1213E+05
+F,9001,MZ,0.0000E+00
+
+! --- Load block: spine_pos_x, master node 9002 ---
+N,9002,XC+LS,YC,ZC
+NSEL,S,LOC,X,XC+LS-0.005,XC+LS+0.005
+NSEL,R,LOC,Y,YC-0.005,YC+0.005
+! ... refine selection to the circular cut edge in practice
+CERIG,9002,ALL,UXYZ,0
+ALLSEL
+F,9002,FX,1.9655E-10
+F,9002,FY,7.2784E-10
+F,9002,FZ,-1.4535E+04
+F,9002,MX,-1.0161E-09
+F,9002,MY,1.1420E+04
+F,9002,MZ,2.1430E-09
+
+! --- Load block: boom_neg_y, master node 9003 ---
+N,9003,XC,YC-LS,ZC
+NSEL,S,LOC,X,XC-0.005,XC+0.005
+NSEL,R,LOC,Y,YC-LS-0.005,YC-LS+0.005
+! ... refine selection to the circular cut edge in practice
+CERIG,9003,ALL,UXYZ,0
+ALLSEL
+F,9003,FX,0.0000E+00
+F,9003,FY,0.0000E+00
+F,9003,FZ,3.1147E+04
+F,9003,MX,0.0000E+00
+F,9003,MY,-8.5654E+04
+F,9003,MZ,0.0000E+00
+
+! --- Load block: boom_pos_y, master node 9004 ---
+N,9004,XC,YC+LS,ZC
+NSEL,S,LOC,X,XC-0.005,XC+0.005
+NSEL,R,LOC,Y,YC+LS-0.005,YC+LS+0.005
+! ... refine selection to the circular cut edge in practice
+CERIG,9004,ALL,UXYZ,0
+ALLSEL
+F,9004,FX,0.0000E+00
+F,9004,FY,0.0000E+00
+F,9004,FZ,3.1147E+04
+F,9004,MX,0.0000E+00
+F,9004,MY,-8.5654E+04
+F,9004,MZ,0.0000E+00
+
+FINISH
+
+/SOLU
+ANTYPE,STATIC
+SOLVE
+FINISH
+
+/POST1
+SET,LAST
+PLNSOL,S,EQV
+/IMAGE,SAVE,joint_shell_screenshot,png
+
+! Extract peak VM for cross-check
+NSORT,S,EQV,0,1
+*GET,VM_MAX,SORT,,MAX
+/COM,Joint shell submodel peak VM = %VM_MAX:F12.2% Pa
+FINISH
