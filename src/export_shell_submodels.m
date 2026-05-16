@@ -76,23 +76,10 @@ function export_shell_submodels(joint_path, strut_path, frame_section, lg_sectio
     fprintf(fid, '\n');
 
     fprintf(fid, '! ---------------------------------------------------------------\n');
-    fprintf(fid, '! Geometry: 4 cylindrical tube stubs meeting at the joint center.\n');
-    fprintf(fid, '! Each stub is created as a CYLIND with axis along one direction.\n');
+    fprintf(fid, '! Geometry: 4 cylindrical shell stubs meeting at the joint center.\n');
+    fprintf(fid, '! Each stub is created via CYL4 inside a local cylindrical CSYS so\n');
+    fprintf(fid, '! that the tube axis aligns with the local Z. AGLUE merges them.\n');
     fprintf(fid, '! ---------------------------------------------------------------\n');
-    fprintf(fid, '\n');
-    fprintf(fid, '! Spine, -x stub (from (XC-LS, YC, ZC) to (XC, YC, ZC))\n');
-    fprintf(fid, 'CYLIND,RO,RO,-LS,0,0,360\n');  % half-empty cylinder, axis Z by default
-    fprintf(fid, '! NOTE: CYLIND defaults to the global Z axis; we need to reorient.\n');
-    fprintf(fid, '! For simplicity here, we create the geometry via KEYPOINTS and lines.\n');
-    fprintf(fid, '\n');
-    fprintf(fid, '! Cleaner approach: build by curves and revolve.\n');
-    fprintf(fid, '! Step 1: define 4 circular cross-section curves at the joint end\n');
-    fprintf(fid, '! Step 2: extrude each in its axis direction to form the tube shell\n');
-    fprintf(fid, '! Step 3: AGLUE the 4 stubs at the joint\n');
-    fprintf(fid, '\n');
-    fprintf(fid, '! Reset and use cleaner construction:\n');
-    fprintf(fid, 'VCLEAR,ALL\n');
-    fprintf(fid, 'VDELE,ALL,,,1\n');
     fprintf(fid, '\n');
     fprintf(fid, '! Local cylindrical coordinate systems, one per stub.\n');
     fprintf(fid, 'LOCAL,11,1,XC,YC,ZC,0,0,90    ! axis along +x  (theta about z=-90)\n');
@@ -101,39 +88,65 @@ function export_shell_submodels(joint_path, strut_path, frame_section, lg_sectio
     fprintf(fid, 'LOCAL,14,1,XC,YC,ZC,-90,0,90  ! axis along -y\n');
     fprintf(fid, 'CSYS,0\n');
     fprintf(fid, '\n');
-    fprintf(fid, '! Construct each stub as a cylindrical shell surface (CYL4 / AREA approach)\n');
-    fprintf(fid, '! Spine +x stub (from XC to XC+LS along x)\n');
-    fprintf(fid, 'CSYS,11\n');
+    fprintf(fid, '! Construct each stub as a cylindrical shell surface. CYL4 uses the\n');
+    fprintf(fid, '! working plane (not the active CSYS), so WPCSYS,-1 is needed after each\n');
+    fprintf(fid, '! CSYS switch to align the WP and put the extrusion axis along local Z.\n');
+    fprintf(fid, 'CSYS,11 $ WPCSYS,-1\n');
     fprintf(fid, 'CYL4,0,0,RO,0,RO,360,LS\n');
-    fprintf(fid, 'CSYS,12\n');
+    fprintf(fid, 'CSYS,12 $ WPCSYS,-1\n');
     fprintf(fid, 'CYL4,0,0,RO,0,RO,360,LS\n');
-    fprintf(fid, 'CSYS,13\n');
+    fprintf(fid, 'CSYS,13 $ WPCSYS,-1\n');
     fprintf(fid, 'CYL4,0,0,RO,0,RO,360,LS\n');
-    fprintf(fid, 'CSYS,14\n');
+    fprintf(fid, 'CSYS,14 $ WPCSYS,-1\n');
     fprintf(fid, 'CYL4,0,0,RO,0,RO,360,LS\n');
-    fprintf(fid, 'CSYS,0\n');
+    fprintf(fid, 'CSYS,0 $ WPCSYS,-1\n');
     fprintf(fid, '\n');
-    fprintf(fid, '! AGLUE merges coincident areas at the joint center.\n');
-    fprintf(fid, 'AGLUE,ALL\n');
-    fprintf(fid, '\n');
-    fprintf(fid, '! Mesh with SHELL281, target element size ~10 mm.\n');
+    fprintf(fid, '! Mesh each stub independently with SHELL281, target element size ~10 mm.\n');
+    fprintf(fid, '! The 4 stubs only touch at a single point at the joint center, so no\n');
+    fprintf(fid, '! area Boolean operation works cleanly. Each stub''s base circle is\n');
+    fprintf(fid, '! clamped to ground directly (equivalent to a fixed rigid hub).\n');
     fprintf(fid, 'AESIZE,ALL,0.010\n');
     fprintf(fid, 'TYPE,1\n');
     fprintf(fid, 'SECNUM,1\n');
     fprintf(fid, 'MAT,1\n');
     fprintf(fid, 'AMESH,ALL\n');
     fprintf(fid, '\n');
-
-    fprintf(fid, '! ---------------------------------------------------------------\n');
-    fprintf(fid, '! Apply boundary loads via remote master nodes coupled to the cut\n');
-    fprintf(fid, '! face nodes with CERIG (rigid coupling).\n');
-    fprintf(fid, '! ---------------------------------------------------------------\n');
+    fprintf(fid, '! Phantom-mass element for the remote-master nodes used by CERIG below.\n');
+    fprintf(fid, 'ET,99,MASS21\n');
+    fprintf(fid, 'KEYOPT,99,3,0\n');
+    fprintf(fid, 'R,99,1.0E-10,1.0E-10,1.0E-10,1.0E-10,1.0E-10,1.0E-10\n');
+    fprintf(fid, '\n');
+    fprintf(fid, '! Clamp each stub''s base circle. The radial restriction (LOC,X near RO)\n');
+    fprintf(fid, '! is essential: with 4 tubes meeting at the joint, axial-only NSEL\n');
+    fprintf(fid, '! over-picks nodes from neighbouring stubs.\n');
+    fprintf(fid, 'CSYS,11\n');
+    fprintf(fid, 'NSEL,S,LOC,Z,-0.001,0.001\n');
+    fprintf(fid, 'NSEL,R,LOC,X,RO-0.005,RO+0.005\n');
+    fprintf(fid, 'D,ALL,ALL,0.0\n');
+    fprintf(fid, 'CSYS,12\n');
+    fprintf(fid, 'NSEL,S,LOC,Z,-0.001,0.001\n');
+    fprintf(fid, 'NSEL,R,LOC,X,RO-0.005,RO+0.005\n');
+    fprintf(fid, 'D,ALL,ALL,0.0\n');
+    fprintf(fid, 'CSYS,13\n');
+    fprintf(fid, 'NSEL,S,LOC,Z,-0.001,0.001\n');
+    fprintf(fid, 'NSEL,R,LOC,X,RO-0.005,RO+0.005\n');
+    fprintf(fid, 'D,ALL,ALL,0.0\n');
+    fprintf(fid, 'CSYS,14\n');
+    fprintf(fid, 'NSEL,S,LOC,Z,-0.001,0.001\n');
+    fprintf(fid, 'NSEL,R,LOC,X,RO-0.005,RO+0.005\n');
+    fprintf(fid, 'D,ALL,ALL,0.0\n');
+    fprintf(fid, 'CSYS,0\n');
+    fprintf(fid, 'ALLSEL\n');
     fprintf(fid, '\n');
 
-    write_remote_load_block(fid, 'spine_neg_x', 'XC-LS', 'YC', 'ZC', 9001, spine_inboard);
-    write_remote_load_block(fid, 'spine_pos_x', 'XC+LS', 'YC', 'ZC', 9002, spine_outboard);
-    write_remote_load_block(fid, 'boom_neg_y',  'XC',    'YC-LS', 'ZC', 9003, boom_left);
-    write_remote_load_block(fid, 'boom_pos_y',  'XC',    'YC+LS', 'ZC', 9004, boom_right);
+    fprintf(fid, '! Boundary loads via remote master nodes coupled to cut-face nodes\n');
+    fprintf(fid, '! with CERIG. Master IDs > 99000 to avoid clashing with mesh node IDs.\n');
+    fprintf(fid, '\n');
+
+    write_remote_load_block(fid, 'spine_neg_x', 12, 'XC-LS', 'YC',    'ZC', 99001, spine_inboard);
+    write_remote_load_block(fid, 'spine_pos_x', 11, 'XC+LS', 'YC',    'ZC', 99002, spine_outboard);
+    write_remote_load_block(fid, 'boom_neg_y',  14, 'XC',    'YC-LS', 'ZC', 99003, boom_left);
+    write_remote_load_block(fid, 'boom_pos_y',  13, 'XC',    'YC+LS', 'ZC', 99004, boom_right);
 
     fprintf(fid, '\nFINISH\n');
     fprintf(fid, '\n/SOLU\n');
@@ -195,27 +208,43 @@ function export_shell_submodels(joint_path, strut_path, frame_section, lg_sectio
     fprintf(fid, '\n');
     fprintf(fid, '! Strut: direction toward (3.2, -1.2, 0), unit vector [0, -0.577, -0.817]\n');
     fprintf(fid, '! Local CS 21 with axis along strut\n');
-    fprintf(fid, 'LOCAL,21,1,XC,YC,ZC,-90,-35.5377,90  ! cylindrical, axis along strut\n');
-    fprintf(fid, 'CSYS,21\n');
+    fprintf(fid, 'LOCAL,21,1,XC,YC,ZC,-90,-35.5377,90\n');
+    fprintf(fid, 'CSYS,21 $ WPCSYS,-1\n');
     fprintf(fid, 'CYL4,0,0,RO,0,RO,360,LS\n');
-    fprintf(fid, 'CSYS,0\n');
+    fprintf(fid, 'CSYS,0 $ WPCSYS,-1\n');
     fprintf(fid, '\n');
     fprintf(fid, '! Cross brace: direction +y\n');
     fprintf(fid, 'LOCAL,22,1,XC,YC,ZC,90,0,90\n');
-    fprintf(fid, 'CSYS,22\n');
+    fprintf(fid, 'CSYS,22 $ WPCSYS,-1\n');
     fprintf(fid, 'CYL4,0,0,RO,0,RO,360,LS\n');
-    fprintf(fid, 'CSYS,0\n');
+    fprintf(fid, 'CSYS,0 $ WPCSYS,-1\n');
     fprintf(fid, '\n');
-    fprintf(fid, 'AGLUE,ALL\n');
     fprintf(fid, 'AESIZE,ALL,0.005\n');
     fprintf(fid, 'TYPE,1\n');
     fprintf(fid, 'SECNUM,1\n');
     fprintf(fid, 'MAT,1\n');
     fprintf(fid, 'AMESH,ALL\n');
     fprintf(fid, '\n');
+    fprintf(fid, '! Phantom-mass element for remote-master nodes used by CERIG below.\n');
+    fprintf(fid, 'ET,99,MASS21\n');
+    fprintf(fid, 'KEYOPT,99,3,0\n');
+    fprintf(fid, 'R,99,1.0E-10,1.0E-10,1.0E-10,1.0E-10,1.0E-10,1.0E-10\n');
+    fprintf(fid, '\n');
+    fprintf(fid, '! Clamp each stub''s base circle.\n');
+    fprintf(fid, 'CSYS,21\n');
+    fprintf(fid, 'NSEL,S,LOC,Z,-0.001,0.001\n');
+    fprintf(fid, 'NSEL,R,LOC,X,RO-0.002,RO+0.002\n');
+    fprintf(fid, 'D,ALL,ALL,0.0\n');
+    fprintf(fid, 'CSYS,22\n');
+    fprintf(fid, 'NSEL,S,LOC,Z,-0.001,0.001\n');
+    fprintf(fid, 'NSEL,R,LOC,X,RO-0.002,RO+0.002\n');
+    fprintf(fid, 'D,ALL,ALL,0.0\n');
+    fprintf(fid, 'CSYS,0\n');
+    fprintf(fid, 'ALLSEL\n');
+    fprintf(fid, '\n');
 
-    write_remote_load_block(fid, 'strut',  'XC+0',     'YC-LS*0.577', 'ZC-LS*0.817', 9101, strut_main);
-    write_remote_load_block(fid, 'brace',  'XC',       'YC+LS',       'ZC',          9102, cross_brace);
+    write_remote_load_block(fid, 'strut',  21, 'XC+0', 'YC-LS*0.577', 'ZC-LS*0.817', 99101, strut_main);
+    write_remote_load_block(fid, 'brace',  22, 'XC',   'YC+LS',       'ZC',          99102, cross_brace);
 
     fprintf(fid, '\nFINISH\n');
     fprintf(fid, '/SOLU\n');
@@ -255,18 +284,21 @@ function load_vec = struct_to_load_vec(elem_result)
 end
 
 % ==========================================================================
-function write_remote_load_block(fid, name, xexpr, yexpr, zexpr, master_id, load_vec)
+function write_remote_load_block(fid, name, csys_num, xexpr, yexpr, zexpr, master_id, load_vec)
 % Write an APDL block that:
-%   1. Creates a master node at the cut centroid
-%   2. Selects nodes on the cut edge
-%   3. Couples them rigidly to the master with CERIG
-%   4. Applies the 6 load components at the master
-    fprintf(fid, '\n! --- Load block: %s, master node %d ---\n', name, master_id);
+%   1. Creates a master node at the cut-face centroid (in global CSYS,0)
+%   2. Selects the full cut-face circle using the local cylindrical CSYS
+%      whose Z axis is the stub axis: every cut-face node is at local Z = LS.
+%   3. Couples them rigidly to the master via CERIG (UXYZ DOF).
+%   4. Applies the 6 load components at the master in global CSYS.
+    fprintf(fid, '\n! --- Load block: %s (master %d, local CS %d) ---\n', name, master_id, csys_num);
+    fprintf(fid, 'CSYS,0\n');
     fprintf(fid, 'N,%d,%s,%s,%s\n', master_id, xexpr, yexpr, zexpr);
-    fprintf(fid, 'NSEL,S,LOC,X,%s-0.005,%s+0.005\n', xexpr, xexpr);
-    fprintf(fid, 'NSEL,R,LOC,Y,%s-0.005,%s+0.005\n', yexpr, yexpr);
-    fprintf(fid, '! ... refine selection to the circular cut edge in practice\n');
-    fprintf(fid, 'CERIG,%d,ALL,UXYZ,0\n', master_id);
+    fprintf(fid, 'TYPE,99 $ REAL,99 $ E,%d\n', master_id);
+    fprintf(fid, 'CSYS,%d\n', csys_num);
+    fprintf(fid, 'NSEL,S,LOC,Z,LS-0.001,LS+0.001  ! cut-face circle at local Z = LS\n');
+    fprintf(fid, 'CSYS,0\n');
+    fprintf(fid, 'CERIG,%d,ALL,ALL\n', master_id);
     fprintf(fid, 'ALLSEL\n');
     fprintf(fid, 'F,%d,FX,%.4E\n', master_id, load_vec(1));
     fprintf(fid, 'F,%d,FY,%.4E\n', master_id, load_vec(2));

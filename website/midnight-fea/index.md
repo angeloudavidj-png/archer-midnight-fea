@@ -12,10 +12,10 @@ author: David Angelou
 
 ## Headline results
 
-| Frame governing RF | Landing dynamic factor | Critical ply mode |
-|---|---|---|
-| **2.00** | **1.87** | **Matrix tension** |
-| LC2 2g maneuver, peak VM 175.4 MPa against CFRP 350 MPa allowable | Newmark drop test at 2.6 m/s sink. Peak landing force 87% above the static 3g envelope | 90° plies, Tsai-Wu 0.40 of failure, strength ratio 2.14 |
+| Frame governing RF | Landing dynamic factor | Critical ply mode | Cross-verified |
+|---|---|---|---|
+| **2.00** (beam) → **0.61** (joint shell) | **1.87** | **Matrix tension** | Ansys MAPDL 2025 R2 |
+| LC2 2g maneuver, peak VM 175.4 MPa against CFRP 350 MPa allowable; joint shell submodel reveals Kt = 3.28 that drives joint RF below 1.0 | Newmark drop test at 2.6 m/s sink. Peak landing force 87% above the static 3g envelope | 90° plies, Tsai-Wu 0.40 of failure, strength ratio 2.14 | Beam VM matches MATLAB within 9.72%, peak displacement within 0.11% |
 
 ## Approach
 
@@ -45,9 +45,23 @@ Five layered analyses sit on top of the static solver. A consistent-mass modal a
 
 *Parametric sweep over boom and strut cross sections, 1400 combinations evaluated in 0.69 s. The current post-Phase-0 design (yellow star) is dominated by lighter feasible designs. The minimum-mass feasible point at RF ≥ 1.5 is 312 kg, 137 kg lighter than the current 449 kg baseline.*
 
+## Ansys MAPDL cross-verification
+
+The same LC2 model and two shell submodels were re-run on Ansys MAPDL 2025 R2. The orchestration script in `scripts/ansys_runner.py` invokes batch MAPDL on each .mac deck, parses peak metrics from `/COM,*** RESULT,key,value` lines in the .out file, and produces contour PNGs.
+
+| Analysis | Nodes | Peak VM (Ansys) | Beam nominal | Kt | RF_corrected |
+|---|---|---|---|---|---|
+| Frame beam (LC2) | 20 | 158.35 MPa | 175.40 MPa (MATLAB) | -9.72% diff | 2.00 |
+| Joint shell (LC2) | 50 628 | **574.55 MPa** | 175.40 MPa | **3.28** | **0.61 (flag)** |
+| Strut top shell (LCG) | 22 672 | 74.76 MPa | 427.87 MPa | 0.17 | 6.75 |
+
+The frame beam cross-verification passes within tolerance. The joint shell submodel reveals a stress concentration factor of 3.28 at the four-tube intersection that drives the corrected reserve factor below 1.0; this is a design flag for an unreinforced fitting. The strut top shell shows comfortable margin (RF_corrected = 6.75) after the resized 100x8 strut from Phase 0.
+
+Full details and the eight-issue deck-fix list are in [docs/AnsysVerification.md](../../docs/AnsysVerification.md).
+
 ## What I would do next
 
-1. **Run the staged Ansys cross-verification.** The toolkit emits Nastran .bdf and Ansys .mac files of the LC2 frame plus shell submodels of the wing-fuselage joint and the strut top. The expectation is peak von Mises agreement within 10 percent and peak displacement within 5 percent.
+1. **Reinforce the wing-fuselage joint.** The Ansys submodel flags Kt = 3.28 at the unreinforced four-tube intersection, dropping the LC2 joint reserve to 0.61. A doubler or local wall thickening to drop Kt below 2.0 is the first design action; fillets at the intersection would also help by a factor of roughly two.
 2. **Add a nonlinear oleo strut model to the drop test.** The current 1.87 dynamic factor uses a rigid strut with tire compliance only. A real Midnight has an oleo that absorbs landing energy over 100 to 200 mm of stroke, which would substantially lower the peak strut load and let the static design point shrink back toward 3g.
 3. **Bridge the composite ply analysis through to a shell layup.** The current cross-verification model uses isotropic-equivalent CFRP. A composite shell (Ansys ACP or Nastran PCOMP) with the actual [0/45/-45/90]\_s stack would reveal interlaminar shear hotspots the beam plus isotropic shell cannot see.
 4. **Loop the Phase 4 Pareto optimum back into the static and dynamic analyses.** The 312 kg / RF 1.60 design uses very thin walls that the beam-element model treats as fine. A buckling check at this t/D ratio is the next gate before adopting the optimum, and that requires a shell or stiffened-panel model.

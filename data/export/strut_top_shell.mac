@@ -28,53 +28,74 @@ MP,DENS,1,2810.00
 *SET,LS,0.200
 
 ! Strut: direction toward (3.2, -1.2, 0), unit vector [0, -0.577, -0.817]
-! Local CS 21 with axis along strut
-LOCAL,21,1,XC,YC,ZC,-90,-35.5377,90  ! cylindrical, axis along strut
-CSYS,21
+! Local CS 21 with axis along strut. CYL4 follows the working plane, not
+! the CSYS, so WPCSYS,-1 aligns the WP after each CSYS switch.
+LOCAL,21,1,XC,YC,ZC,-90,-35.5377,90
+CSYS,21 $ WPCSYS,-1
 CYL4,0,0,RO,0,RO,360,LS
-CSYS,0
+CSYS,0 $ WPCSYS,-1
 
 ! Cross brace: direction +y
 LOCAL,22,1,XC,YC,ZC,90,0,90
-CSYS,22
+CSYS,22 $ WPCSYS,-1
 CYL4,0,0,RO,0,RO,360,LS
-CSYS,0
+CSYS,0 $ WPCSYS,-1
 
-AGLUE,ALL
+! Mesh each stub independently; bridge them with a rigid hub at the
+! attachment centre (mirror of the joint-shell approach).
 AESIZE,ALL,0.005
 TYPE,1
 SECNUM,1
 MAT,1
 AMESH,ALL
 
+! Phantom-mass element for the remote-master nodes used by CERIG below.
+ET,99,MASS21
+KEYOPT,99,3,0
+R,99,1.0E-10,1.0E-10,1.0E-10,1.0E-10,1.0E-10,1.0E-10
 
-! --- Load block: strut, master node 9101 ---
-N,9101,XC+0,YC-LS*0.577,ZC-LS*0.817
-NSEL,S,LOC,X,XC+0-0.005,XC+0+0.005
-NSEL,R,LOC,Y,YC-LS*0.577-0.005,YC-LS*0.577+0.005
-! ... refine selection to the circular cut edge in practice
-CERIG,9101,ALL,UXYZ,0
+! Directly clamp each stub's base circle (local Z=0) to ground.
+CSYS,21
+NSEL,S,LOC,Z,-0.001,0.001
+D,ALL,ALL,0.0
+CSYS,22
+NSEL,S,LOC,Z,-0.001,0.001
+D,ALL,ALL,0.0
+CSYS,0
 ALLSEL
-F,9101,FX,-5.1242E+04
-F,9101,FY,2.1024E+04
-F,9101,FZ,3.2030E+02
-F,9101,MX,-2.8647E+03
-F,9101,MY,2.2757E+02
-F,9101,MZ,-1.9852E+04
 
-! --- Load block: brace, master node 9102 ---
-N,9102,XC,YC+LS,ZC
-NSEL,S,LOC,X,XC-0.005,XC+0.005
-NSEL,R,LOC,Y,YC+LS-0.005,YC+LS+0.005
-! ... refine selection to the circular cut edge in practice
-CERIG,9102,ALL,UXYZ,0
+
+! --- Load block: strut (master 99101, local CS 21) ---
+CSYS,0
+N,99101,XC+0,YC-LS*0.577,ZC-LS*0.817
+TYPE,99 $ REAL,99 $ E,99101
+CSYS,21
+NSEL,S,LOC,Z,LS-0.001,LS+0.001  ! cut-face circle at local Z = LS
+CSYS,0
+CERIG,99101,ALL,ALL
 ALLSEL
-F,9102,FX,-2.9289E+04
-F,9102,FY,-7.2760E-12
-F,9102,FZ,2.2737E-13
-F,9102,MX,-9.0949E-13
-F,9102,MY,-1.0568E+02
-F,9102,MZ,-3.5064E+03
+F,99101,FX,-5.1242E+04
+F,99101,FY,2.1024E+04
+F,99101,FZ,3.2030E+02
+F,99101,MX,-2.8647E+03
+F,99101,MY,2.2757E+02
+F,99101,MZ,-1.9852E+04
+
+! --- Load block: brace (master 99102, local CS 22) ---
+CSYS,0
+N,99102,XC,YC+LS,ZC
+TYPE,99 $ REAL,99 $ E,99102
+CSYS,22
+NSEL,S,LOC,Z,LS-0.001,LS+0.001  ! cut-face circle at local Z = LS
+CSYS,0
+CERIG,99102,ALL,ALL
+ALLSEL
+F,99102,FX,-2.9289E+04
+F,99102,FY,-7.2760E-12
+F,99102,FZ,2.2737E-13
+F,99102,MX,-9.0949E-13
+F,99102,MY,-1.0568E+02
+F,99102,MZ,-3.5064E+03
 
 FINISH
 /SOLU

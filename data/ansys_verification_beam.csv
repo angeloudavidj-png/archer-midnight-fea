@@ -1,0 +1,3 @@
+metric,matlab,ansys,percent_diff,within_tolerance
+peak_VM_MPa,175.4,158.349753,-9.720779361459527,True
+peak_disp_mm,193.81,194.030081,0.11355502812032059,True

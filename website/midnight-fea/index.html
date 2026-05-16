@@ -153,9 +153,9 @@
 
 <section class="stats" aria-label="Headline results">
   <div class="stat">
-    <div class="label">Frame governing RF</div>
-    <div class="value">2.00</div>
-    <div class="sub">LC2 2g maneuver, peak VM 175.4 MPa against CFRP 350 MPa allowable.</div>
+    <div class="label">Frame governing RF (beam &rarr; joint shell)</div>
+    <div class="value">2.00 &rarr; 0.61</div>
+    <div class="sub">LC2 2g maneuver. Beam peak VM 175.4 MPa against CFRP 350 MPa allowable. Ansys joint shell submodel reveals Kt = 3.28, dropping the corrected joint reserve below 1.0.</div>
   </div>
   <div class="stat">
     <div class="label">Landing dynamic factor</div>
@@ -166,6 +166,11 @@
     <div class="label">Critical ply mode</div>
     <div class="value">Matrix tension</div>
     <div class="sub">90° plies in the boom layup, Tsai-Wu 0.40 of failure, strength ratio 2.14.</div>
+  </div>
+  <div class="stat">
+    <div class="label">Cross-verified</div>
+    <div class="value">Ansys MAPDL 2025 R2</div>
+    <div class="sub">Beam VM matches MATLAB within 9.72%, peak displacement within 0.11%. SHELL281 submodels of the wing-fuselage joint (Kt = 3.28) and landing-gear strut top (Kt = 0.17) run via <code>scripts/ansys_runner.py --all</code> in 31 s.</div>
   </div>
 </section>
 

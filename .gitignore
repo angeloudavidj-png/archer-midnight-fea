@@ -18,8 +18,13 @@ Thumbs.db
 __pycache__/
 *.pyc
 .ipynb_checkpoints/
+.venv/
 
 # Generated outputs. We track the canonical figure set and the results CSV so
 # the report renders on a fresh clone; transient artifacts stay ignored.
 data/*.mat
 data/last_run.log
+
+# Ansys MAPDL transient run artifacts (working directory contents).
+# CSVs and PNGs are committed under data/ and docs/figures/.
+data/ansys_run/

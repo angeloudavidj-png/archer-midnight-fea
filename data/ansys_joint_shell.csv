@@ -1,0 +1,12 @@
+metric,value
+peak_VM_top_MPa,574.548668
+peak_VM_bot_MPa,403.392972
+peak_VM_MPa,574.548668
+beam_nominal_VM_MPa,175.4
+allowable_MPa,350.0
+Kt,3.2756480501710374
+beam_RF,2.0
+RF_corrected,0.6105662053331921
+n_nodes,50628.0
+n_shell_elem,16908.0
+wall_s,17.090742349624634
