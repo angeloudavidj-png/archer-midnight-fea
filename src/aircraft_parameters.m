@@ -43,9 +43,13 @@ function params = aircraft_parameters()
     params.boom_OD_m = 0.300;     % 300 mm equivalent OD
     params.boom_t_m  = 0.010;     % 10 mm wall
 
-    % Landing gear, hollow circular 7075-T6 aluminum tube
-    params.lg_OD_m       = 0.060;
-    params.lg_t_m        = 0.005;
+    % Landing gear, hollow circular 7075-T6 aluminum tube.
+    % Phase 0 design iteration: original 60 mm OD with 5 mm wall failed the
+    % LCG case (RF 0.27, 1881 MPa peak). Resized to 100 mm OD with 8 mm wall
+    % to raise the second moment of area roughly 7x and bring the strut into
+    % positive margin. See "Design iteration" subsection of the report.
+    params.lg_OD_m       = 0.100;
+    params.lg_t_m        = 0.008;
     params.lg_track_m    = 2.40;
     params.lg_wheelbase_m = 3.20;
     params.lg_height_m   = 0.85;
