@@ -1,0 +1,5 @@
+theme: jekyll-theme-cayman
+title: Archer Midnight FEA
+description: 3D Euler-Bernoulli beam FEA of the Archer Aviation Midnight eVTOL airframe and tricycle landing gear, written in base MATLAB. Frame and landing gear sized against four flight load cases and a FAR 23.473 hard landing.
+show_downloads: false
+google_analytics:

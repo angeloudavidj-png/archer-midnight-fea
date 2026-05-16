@@ -1,5 +1,7 @@
 # Archer Midnight: MATLAB FEA of Frame and Landing Gear
 
+### [Read the project website](https://angeloudavidj-png.github.io/archer-midnight-fea/) | [Technical report](docs/index.md) | [Source code](src/) | [Figures](docs/figures/)
+
 A from-scratch 3D Euler-Bernoulli beam finite element analysis of the Archer Aviation Midnight eVTOL airframe and tricycle landing gear, written in base MATLAB with no toolbox dependencies. The project sizes structural members against four flight load cases and a FAR 23.473 hard landing case, and reports stress, displacement, and reserve factors.
 
 ### Headline results
@@ -13,7 +15,7 @@ The frame carries positive margin in every flight case studied. The landing gear
 
 ![Frame LC2 von Mises stress contour](docs/figures/frame_LC2_2g_maneuver_stress.png)
 
-Full methodology, derivations, verification residuals, and a per-element discussion are in [docs/REPORT.md](docs/REPORT.md). Numerical results are read directly from [data/results_summary.csv](data/results_summary.csv), which is regenerated on every MATLAB run.
+Full methodology, derivations, verification residuals, and a per-element discussion are in the [technical report](docs/index.md), also rendered on the [project website](https://angeloudavidj-png.github.io/archer-midnight-fea/). Numerical results are read directly from [data/results_summary.csv](data/results_summary.csv), which is regenerated on every MATLAB run.
 
 **Author:** David Angelou, B.S.E. Mechanical Engineering, University of Michigan (Class of 2027)
 **Status:** Educational portfolio project. All Midnight parameters are public-domain estimates or reasonable engineering approximations; no proprietary Archer data is used.
@@ -35,31 +37,39 @@ This repository was built to:
 ```
 archer-midnight-fea/
 ├── README.md                       # This file
-├── VSCODE_PROMPT.md                # Prompt for Claude Code / Copilot in VS Code to extend project
-├── src/
-│   ├── main.m                      # Master driver script
+├── PROMPT.md                       # Prompt for Claude Code in VS Code to refresh the pipeline
+├── LICENSE                         # MIT
+├── .gitignore
+├── src/                            # MATLAB sources, full FEA implementation
+│   ├── main.m                      # Master driver script (runs all load cases)
 │   ├── aircraft_parameters.m       # Midnight geometry, mass, load factors
 │   ├── material_properties.m       # CFRP and 7075-T6 properties
-│   ├── build_frame_geometry.m      # Generate nodes and elements for the airframe
-│   ├── build_landing_gear.m        # Generate nodes and elements for tricycle gear
-│   ├── beam_element_3d.m           # 12x12 3D beam stiffness in global coordinates
+│   ├── build_frame_geometry.m      # Nodes and elements for the airframe
+│   ├── build_landing_gear.m        # Nodes and elements for the tricycle gear
+│   ├── tube_section.m              # Hollow circular tube section properties
+│   ├── beam_element_3d.m           # 12x12 3D Euler-Bernoulli beam stiffness, global
 │   ├── assemble_global_K.m         # Sparse global stiffness assembly
-│   ├── apply_loads.m               # Build force vectors for each load case
-│   ├── apply_boundary_conditions.m # Penalty / direct elimination of constrained DOFs
-│   ├── solve_fea.m                 # Solve KU = F
+│   ├── apply_loads.m               # Force vector builder per load case
+│   ├── apply_boundary_conditions.m # Direct elimination of constrained DOFs
+│   ├── solve_fea.m                 # Solve KU = F with conditioning check
 │   ├── post_process.m              # Element forces, stress, reserve factors
-│   ├── visualize_deformed.m        # 3D plot of undeformed + deformed structure
-│   └── plot_stress_contour.m       # Color-coded stress on members
-├── data/
-│   └── midnight_params.mat         # Saved parameter struct (generated on first run)
-├── docs/
-│   ├── REPORT.md                   # Technical report
-│   └── figures/                    # Output plots from MATLAB
-├── tests/
-│   ├── test_beam_cantilever.m      # Verify beam element against analytical cantilever
-│   └── test_assembly.m             # Verify global K symmetry and positive semi-definite
-├── .gitignore
-└── LICENSE
+│   ├── visualize_deformed.m        # 3D plot of undeformed plus deformed structure
+│   ├── plot_stress_contour.m       # Color-coded element stress plot
+│   └── save_figure_portable.m      # Portable PNG export with consistent DPI
+├── tests/                          # Verification against analytical results
+│   ├── test_beam_cantilever.m      # Tip deflection vs PL^3 / 3EI, rel err 1.05e-13
+│   └── test_assembly.m             # K symmetry, rigid body mode count
+├── scripts/                        # End to end pipeline drivers
+│   ├── run_pipeline.sh             # macOS/Linux: run MATLAB headless, commit, push
+│   └── run_pipeline.ps1            # Windows: PowerShell equivalent
+├── docs/                           # Report and figures, also the GitHub Pages site
+│   ├── index.md                    # Full technical report (renders as the site)
+│   ├── _config.yml                 # Jekyll theme configuration (Cayman)
+│   └── figures/                    # 10 PNGs, one deformed + one stress per case
+└── data/                           # Run outputs
+    ├── results_summary.csv         # Tabular results, source of truth for the report
+    ├── last_run.log                # Captured MATLAB stdout (gitignored)
+    └── midnight_params.mat         # Saved parameter struct (gitignored)
 ```
 
 ## Quick start
@@ -85,11 +95,11 @@ Requires MATLAB R2022a or later. No toolboxes required for the core solver (the 
 
 ## Key results
 
-See the headline table at the top of this README and the full per-case discussion in [docs/REPORT.md](docs/REPORT.md). Numbers are sourced from [data/results_summary.csv](data/results_summary.csv), which `main.m` regenerates on every run.
+See the headline table at the top of this README and the full per-case discussion in the [technical report](docs/index.md). Numbers are sourced from [data/results_summary.csv](data/results_summary.csv), which `main.m` regenerates on every run.
 
 ## Limitations and assumptions
 
-This is a beam-element idealization, so it will not capture local skin buckling, joint stress concentrations, or composite ply-by-ply failure modes. The Midnight geometry used is a public-domain approximation based on Archer's published renderings, FAA filings, and press materials. Aerodynamic loads are applied as resultant forces at boom and wing nodes rather than from a coupled CFD solution. For a higher-fidelity follow-on, see the extensions listed in `VSCODE_PROMPT.md`.
+This is a beam-element idealization, so it will not capture local skin buckling, joint stress concentrations, or composite ply-by-ply failure modes. The Midnight geometry used is a public-domain approximation based on Archer's published renderings, FAA filings, and press materials. Aerodynamic loads are applied as resultant forces at boom and wing nodes rather than from a coupled CFD solution. The full limitations list and planned extensions are at the end of the [technical report](docs/index.md).
 
 ## License
 
