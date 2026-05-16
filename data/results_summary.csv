@@ -1,0 +1,6 @@
+component,load_case,max_vm_MPa,min_RF,max_disp_mm,allowable_MPa
+frame,LC1_hover_static,87.70,3.99,96.90,350
+frame,LC2_2g_maneuver,175.40,2.00,193.81,350
+frame,LC3_cruise,87.70,3.99,87.70,350
+frame,LC4_motor_out,100.49,3.48,145.36,350
+landing_gear,LCG_3g_landing,1881.26,0.27,289.42,503

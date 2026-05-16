@@ -1,0 +1,25 @@
+# MATLAB artifacts
+*.asv
+*.m~
+*.mex*
+*.mat
+slprj/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Generated outputs. We track the canonical figure set and the results CSV so
+# the report renders on a fresh clone; transient artifacts stay ignored.
+data/*.mat
+data/last_run.log
